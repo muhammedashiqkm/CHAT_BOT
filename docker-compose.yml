@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./college_agent:/app/college_agent
+      - ./logs:/app/logs
+    env_file:
+      - college_agent/.env
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - GUNICORN_CMD_ARGS="--access-logfile=- --error-logfile=- --workers=4 --worker-tmp-dir=/dev/shm --timeout=120"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
