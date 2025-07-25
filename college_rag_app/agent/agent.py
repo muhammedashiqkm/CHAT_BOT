@@ -4,11 +4,14 @@ from google.adk.tools.retrieval.vertex_ai_rag_retrieval import VertexAiRagRetrie
 from vertexai.preview import rag
 from dotenv import load_dotenv
 
-# Updated import path
+
 from .prompts import return_instructions_root
 
-load_dotenv()
+
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if not GOOGLE_APPLICATION_CREDENTIALS:
+    print("WARNING: GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Agent might not work.")
+
 ask_vertex_retrieval = VertexAiRagRetrieval(
     name='retrieve_rag_documentation',
     description=(
@@ -31,3 +34,8 @@ root_agent = Agent(
         ask_vertex_retrieval,
     ]
 )
+
+if not os.getenv("RAG_CORPUS"):
+    print("WARNING: RAG_CORPUS environment variable not set. RAG retrieval might not function.")
+if not os.getenv("GENAI_MODEL_NAME"):
+    print("WARNING: GENAI_MODEL_NAME environment variable not set. Agent model might not load.")
