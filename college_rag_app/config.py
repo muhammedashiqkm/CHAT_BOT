@@ -27,6 +27,9 @@ class Config:
     # IMPORTANT: In production, specify exact trusted origins instead of "*".
     # Example: ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://yourfrontend.com").split(",")
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    
+     # In production, set this to your Memcached server's address.
+    RATELIMIT_STORAGE_URI = os.getenv("MEMCACHED_URL", "memcached://localhost:11211")
 
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL")
