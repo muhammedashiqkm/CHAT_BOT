@@ -17,3 +17,4 @@ pydantic
 safety
 llama-index
 pymemcache
+psycopg2
