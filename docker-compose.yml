@@ -5,21 +5,32 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: chatbot
+    restart: unless-stopped
+    depends_on:
+      - memcached
     ports:
       - "5000:5000"
-    volumes:
-      - ./college_agent:/app/college_agent
-      - ./logs:/app/logs
-    env_file:
-      - college_agent/.env
     environment:
+      - RATELIMIT_STORAGE_URI=memcached://memcached:11211
       - FLASK_ENV=production
-      - PYTHONUNBUFFERED=1
-      - GUNICORN_CMD_ARGS="--access-logfile=- --error-logfile=- --workers=4 --worker-tmp-dir=/dev/shm --timeout=120"
-    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./google-credentials.json:/app/google-credentials.json:ro
+      - app-logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: qb-autogen-memcached-prod
+    restart: unless-stopped
+
+volumes:
+  app-logs:
+    driver: local
