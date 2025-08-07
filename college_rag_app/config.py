@@ -29,7 +29,7 @@ class Config:
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
     
      # In production, set this to your Memcached server's address.
-    RATELIMIT_STORAGE_URI = os.getenv("MEMCACHED_URL")
+    RATELIMIT_STORAGE_URI = os.getenv("MEMCACHED_URL","memcached://memcached:11211")
 
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL")
