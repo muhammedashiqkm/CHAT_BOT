@@ -1,5 +1,6 @@
 import logging
-from flask import Flask, jsonify, request # <- FIX: Added 'request' here
+from logging.handlers import RotatingFileHandler 
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -21,17 +22,34 @@ def create_app():
     # Load configuration from the config object
     app.config.from_object(Config)
 
-    # Setup logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler("logs/app.log"),
-            logging.StreamHandler()
-        ]
+    # --- 2. Setup logging with rotation ---
+    # Create a rotating file handler.
+    # It will create a new log file when the current one reaches 10MB.
+    # It will keep the 5 most recent log files as backups.
+    file_handler = RotatingFileHandler(
+        'logs/app.log', 
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=5
     )
-    logger = logging.getLogger(__name__)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
 
+    # Create a stream handler to also log to the console.
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
+    
+    # Get the root logger, set its level, and add the handlers.
+    # Note: We configure the root logger to catch logs from all libraries.
+    # The original logging.basicConfig is replaced by this more detailed setup.
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    # ----------------------------------------
+    
     # Initialize extensions with the app
     cors.init_app(app, origins=app.config['ALLOWED_ORIGINS'], supports_credentials=True)
     jwt.init_app(app)
@@ -52,14 +70,19 @@ def create_app():
     
     @app.errorhandler(Exception)
     def handle_exception(e):
-        logger.error(f"Unhandled exception: {str(e)}")
+        # Use the configured logger
+        app_logger = logging.getLogger(__name__)
+        app_logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
         return jsonify({"error": "An internal server error occurred"}), 500
 
     @app.before_request
     def log_request_info():
         # This function will now work correctly
-        logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
+        app_logger = logging.getLogger(__name__)
+        app_logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
 
 
-    logger.info("Application setup complete.")
+    app_logger = logging.getLogger(__name__)
+    app_logger.info("Application setup complete.")
     return app
+    
