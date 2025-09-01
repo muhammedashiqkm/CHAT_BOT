@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy only the requirements file to leverage Docker's build cache.
 COPY requirements.txt .
-# Install Python packages. [cite: 2]
+# Install Python packages.
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt 
 
@@ -37,10 +37,9 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy the application code into the container. 
-COPY . . 
-
-# Create log directories and give the non-root user ownership of the app directory. 
-RUN mkdir -p logs/app logs/access logs/error logs/security && \
+COPY . .
+# Create log directories and give the non-root user ownership of the app directory.
+RUN mkdir -p logs && \
     chown -R appuser:appuser /app 
 
 # Switch to the non-root user.
@@ -53,9 +52,9 @@ EXPOSE 5000
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_ENV=production
 
-# Define a health check to ensure the container is running properly. 
+# Define a health check to ensure the container is running properly.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1 
 
-# The command to run the application using a production-grade WSGI server. 
-CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "run:app"]
+# The command to run the application using a production-grade ASGI server.
+CMD ["hypercorn", "--workers", "4", "--bind", "0.0.0.0:5000", "run:app"]

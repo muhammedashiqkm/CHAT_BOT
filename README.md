@@ -1,3 +1,5 @@
+
+
 ### README.md
 
 # College RAG Application
@@ -6,257 +8,221 @@ This is a Retrieval-Augmented Generation (RAG) application designed to act as a 
 
 ## Project Overview
 
-The application is a Flask-based web service that provides a set of API endpoints for user authentication, managing conversational sessions, and interacting with the AI agent. The core of the application is an AI agent that leverages a RAG corpus on Google's Vertex AI to provide accurate and context-aware answers.
+The application is a Flask-based web service that provides a set of API endpoints for user authentication, managing conversational sessions, and interacting with various AI agents. The core of the application is an AI agent that leverages a RAG corpus on Google's Vertex AI to provide accurate and context-aware answers.
 
 ## Features
 
-  * **Conversational AI:** An AI assistant specialized in college-related queries.
-  * **Retrieval-Augmented Generation (RAG):** Utilizes Vertex AI RAG to pull information from a specific corpus of documents.
-  * **Secure Authentication:** Employs JWT for securing API endpoints.
-  * **Session Management:** Supports creating, managing, and ending user chat sessions to maintain conversational context.
-  * [cite\_start]**Rate Limiting:** Protects the login endpoint against brute-force attacks. [cite: 8]
-  * [cite\_start]**Dockerized:** Includes a `Dockerfile` for easy containerization and deployment. [cite: 4]
-  * **Asynchronous Agent:** The main AI agent logic is executed asynchronously for improved performance.
-
-## Architecture
-
-The application is structured as a Python Flask project:
-
-  * `run.py`: The entry point for starting the application.
-  * `college_rag_app/`: The main application package.
-      * `__init__.py`: The application factory, responsible for creating and configuring the Flask app and its extensions (CORS, JWT, Limiter).
-      * [cite\_start]`routes.py`: Defines all the API endpoints. [cite: 8]
-      * `services.py`: Contains the core business logic, including the asynchronous agent runner.
-      * `agent.py`: Defines the AI agent and its tools, including the Vertex AI RAG retrieval tool.
-      * `prompts.py`: Stores the instructional prompts for the AI agent.
-      * `schemas.py`: Contains Marshmallow schemas for request data validation.
-      * `config.py`: Manages application configuration from environment variables.
-  * `requirements.txt`: A list of all the Python dependencies.
-  * [cite\_start]`Dockerfile`: A script for building the Docker image of the application. [cite: 4]
-  * [cite\_start]`.env.example`: An example file for the necessary environment variables. [cite: 1]
-
-## Prerequisites
-
-  * [cite\_start]Python 3.11 [cite: 4]
-  * Docker
-  * A Google Cloud Platform project with Vertex AI enabled.
-  * A RAG corpus created in Vertex AI.
-
-## Installation
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone <your-repository-url>
-    cd <repository-directory>
-    ```
-
-2.  **Create and activate a Python virtual environment:**
-
-    ```bash
-    python -m venv venv
-    source venv/bin/activate
-    ```
-
-3.  **Install dependencies:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Set up environment variables:**
-
-      * Create a `.env` file by copying the example file:
-        ```bash
-        cp .env.example .env
-        ```
-      * [cite\_start]Modify the `.env` file with your specific configurations for Google Cloud, security keys, and the database URL. [cite: 1]
-
-## Running the Application
-
-### Development
-
-To run the application in development mode with the Flask server:
-
-```bash
-export FLASK_APP=run.py
-export FLASK_DEBUG=True
-flask run
-```
-
-### Production
-
-For production, it is recommended to use a WSGI server like Gunicorn. [cite\_start]The provided `Dockerfile` is configured to use Gunicorn. [cite: 8]
-
-```bash
-gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 "college_rag_app:create_app()"
-```
+  * **Multi-Model Support**: Interact with AI models from Google (Gemini), OpenAI, Anthropic, and DeepSeek.
+  * **Retrieval-Augmented Generation (RAG)**: Utilizes Vertex AI RAG to pull information from a specific corpus of documents.
+  * **Secure Authentication**: Employs JWT for securing API endpoints.
+  * **Session Management**: Supports creating, managing, and ending user chat sessions to maintain conversational context.
+  * **Rate Limiting**: Protects the login endpoint against brute-force attacks.
+  * **Dockerized**: Includes a `Dockerfile` and `docker-compose.yml` for easy containerization and deployment.
+  * **Asynchronous**: Built with a fully asynchronous architecture using an ASGI server (Hypercorn) for high performance.
+  * **Robust Error Handling**: Gracefully handles external LLM service failures with a `503 Service Unavailable` status.
 
 ## API Documentation
 
+All requests and responses use the JSON format. A successful request will usually return a `200 OK` or `201 Created` status code, while errors are indicated by `4xx` or `5xx` status codes.
+
+-----
+
 ### Health Check
 
-  * **Endpoint:** `GET /health`
-  * **Description:** A health check endpoint to verify that the application is running.
-  * **Authentication:** None
-  * **Success Response (200 OK):**
+A simple endpoint to verify that the application is running.
+
+  * **Endpoint**: `GET /health`
+  * **Authentication**: None
+  * **Success Response (`200 OK`)**:
     ```json
     {
       "status": "ok"
     }
     ```
 
+-----
+
 ### Login
 
-  * **Endpoint:** `POST /login`
-  * [cite\_start]**Description:** Authenticates a user and returns a JWT access token. [cite: 8]
-  * **Authentication:** None
-  * **Request Body:**
+Authenticates a user and returns a JWT access token.
+
+  * **Endpoint**: `POST /login`
+  * **Authentication**: None
+  * **Request Body**:
     ```json
     {
       "username": "admin",
       "password": "secure-password-here"
     }
     ```
-  * **Success Response (200 OK):**
-    ```json
-    {
-      "access_token": "your-jwt-access-token"
-    }
-    ```
-  * **Error Response (401 Unauthorized):**
-    ```json
-    {
-      "error": "Invalid username or password"
-    }
-    ```
+  * **Responses**:
+      * **`200 OK` (Success)**:
+        ```json
+        {
+          "access_token": "your-jwt-access-token"
+        }
+        ```
+      * **`400 Bad Request` (Invalid Input)**:
+        ```json
+        {
+          "error": {
+            "username": [
+              "Missing data for required field."
+            ]
+          }
+        }
+        ```
+      * **`401 Unauthorized` (Invalid Credentials)**:
+        ```json
+        {
+          "error": "Invalid username or password"
+        }
+        ```
+
+-----
 
 ### Start Session
 
-  * **Endpoint:** `POST /start_session`
-  * **Description:** Initializes a new chat session for a user.
-  * **Authentication:** JWT Bearer Token required.
-  * **Request Body:**
+Initializes a new chat session for an authenticated user.
+
+  * **Endpoint**: `POST /start_session`
+  * **Authentication**: JWT Bearer Token
+  * **Request Body**:
     ```json
     {
       "username": "admin",
       "session_name": "my-first-chat"
     }
     ```
-  * **Success Response (201 Created):**
-    ```json
-    {
-      "message": "Session created"
-    }
-    ```
-  * **Error Response (403 Forbidden):**
-    ```json
-    {
-      "error": "Forbidden"
-    }
-    ```
+  * **Responses**:
+      * **`201 Created` (New Session Created)**:
+        ```json
+        {
+          "message": "Session created"
+        }
+        ```
+      * **`200 OK` (Session Already Exists)**:
+        ```json
+        {
+          "message": "Session already exists"
+        }
+        ```
+      * **`403 Forbidden` (User Mismatch)**:
+        ```json
+        {
+          "error": "Forbidden"
+        }
+        ```
+
+-----
 
 ### Ask a Question
 
-  * **Endpoint:** `POST /ask`
-  * **Description:** Submits a question to the AI agent within a specific session.
-  * **Authentication:** JWT Bearer Token required.
-  * **Request Body:**
+Submits a question to the AI agent within a specific session.
+
+  * **Endpoint**: `POST /ask`
+  * **Authentication**: JWT Bearer Token
+  * **Request Body**:
     ```json
     {
       "username": "admin",
       "session_name": "my-first-chat",
-      "question": "What are the admission requirements for the computer science program?"
+      "question": "What are the admission requirements?",
+      "model": "gemini"
     }
     ```
-  * **Success Response (200 OK):**
-    ```json
-    {
-      "response": "The admission requirements for the computer science program are..."
-    }
-    ```
-  * **Error Response (404 Not Found):**
-    ```json
-    {
-      "error": "Session 'my-first-chat' not found."
-    }
-    ```
+    *Note: The `model` field is optional and defaults to "gemini". Supported models: `gemini`, `openai`, `anthropic`, `deepseek`.*
+  * **Responses**:
+      * **`200 OK` (Success)**:
+        ```json
+        {
+          "response": "The admission requirements for the computer science program are..."
+        }
+        ```
+      * **`400 Bad Request` (Invalid Model)**:
+        ```json
+        {
+          "error": {
+            "model": [
+              "Must be one of: gemini, deepseek, openai, anthropic."
+            ]
+          }
+        }
+        ```
+      * **`403 Forbidden` (User Mismatch)**:
+        ```json
+        {
+          "error": "Forbidden"
+        }
+        ```
+      * **`404 Not Found` (Session Not Found)**:
+        ```json
+        {
+          "error": "Session 'my-first-chat' not found."
+        }
+        ```
+      * **`503 Service Unavailable` (LLM Provider Error)**:
+        ```json
+        {
+          "error": "The selected AI model (gemini) is currently unavailable or failed to process the request."
+        }
+        ```
+
+-----
 
 ### End Session
 
-  * **Endpoint:** `POST /end_session`
-  * **Description:** Deletes a user's chat session.
-  * **Authentication:** JWT Bearer Token required.
-  * **Request Body:**
+Deletes a user's chat session and its history.
+
+  * **Endpoint**: `POST /end_session`
+  * **Authentication**: JWT Bearer Token
+  * **Request Body**:
     ```json
     {
       "username": "admin",
       "session_name": "my-first-chat"
     }
     ```
-  * **Success Response (200 OK):**
-    ```json
-    {
-      "message": "Session deleted"
-    }
-    ```
-  * **Error Response (403 Forbidden):**
-    ```json
-    {
-      "error": "Forbidden"
-    }
-    ```
+  * **Responses**:
+      * **`200 OK` (Success)**:
+        ```json
+        {
+          "message": "Session deleted"
+        }
+        ```
+      * **`403 Forbidden` (User Mismatch)**:
+        ```json
+        {
+          "error": "Forbidden"
+        }
+        ```
 
-## Environment Variables
+-----
 
-[cite\_start]The application's configuration is managed through environment variables. [cite: 1]
+## Deployment
 
-  * [cite\_start]`GOOGLE_GENAI_USE_VERTEXAI`: Set to `1` to use Vertex AI. [cite: 1]
-  * [cite\_start]`GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID. [cite: 1]
-  * [cite\_start]`GOOGLE_CLOUD_LOCATION`: The Google Cloud location (e.g., `us-central1`). [cite: 1]
-  * [cite\_start]`RAG_CORPUS`: The full resource name of your RAG corpus in Vertex AI. [cite: 1]
-  * [cite\_start]`GOOGLE_APPLICATION_CREDENTIALS`: The path to your Google Cloud service account key file. [cite: 1]
-  * `GENAI_MODEL_NAME`: The name of the generative model to use (e.g., `gemini-1.0-pro-001`).
-  * [cite\_start]`SECRET_KEY`: A secret key for Flask application security. [cite: 1]
-  * [cite\_start]`JWT_SECRET_KEY`: A secret key for JWT token generation. [cite: 1]
-  * [cite\_start]`DEMO_USER`: The username for the demo user. [cite: 1]
-  * [cite\_start]`DEMO_PASSWORD`: The password for the demo user. [cite: 1]
-  * [cite\_start]`ALLOWED_ORIGINS`: A comma-separated list of allowed origins for CORS. [cite: 1]
-  * [cite\_start]`FLASK_DEBUG`: Set to `True` for development to enable debug mode. [cite: 1]
-  * [cite\_start]`DATABASE_URL`: The connection string for the PostgreSQL database. [cite: 1]
-  * `RATELIMIT_STORAGE_URI`: The URI for the rate limiting storage (e.g., `memcached://localhost:11211`).
+You can deploy this application using Docker and Docker Compose.
 
-## Docker Deployment
+### Using Docker Compose (Recommended)
 
-The application can be built and run as a Docker container using the provided `Dockerfile`.
+This is the easiest method, as it runs the application and its `memcached` dependency with a single command.
 
-1.  **Build the Docker image:**
+1.  **Create `.env` file**: Copy the `.env.example` file to a new file named `.env` and fill in your actual credentials and configuration details.
 
     ```bash
-    docker build -t college-rag-app .
+    cp .env.example .env
     ```
 
-2.  **Run the Docker container:**
+2.  **Build and run the services**:
 
     ```bash
-    docker run -p 5000:5000 -v /path/to/your/gcloud/credentials:/path/in/container \
-           -e GOOGLE_APPLICATION_CREDENTIALS="/path/in/container/your-service-account-key.json" \
-           -e SECRET_KEY="your-secret-key" \
-           -e JWT_SECRET_KEY="your-jwt-secret-key" \
-           -e DEMO_USER="admin" \
-           -e DEMO_PASSWORD="your-secure-password" \
-           -e DATABASE_URL="your-database-url" \
-           -e GOOGLE_CLOUD_PROJECT="your-gcp-project-id" \
-           -e GOOGLE_CLOUD_LOCATION="us-central1" \
-           -e RAG_CORPUS="your-rag-corpus-id" \
-           -e GENAI_MODEL_NAME="gemini-1.0-pro-001" \
-           college-rag-app
+    docker-compose up --build
     ```
 
-    Make sure to replace the placeholder values with your actual configuration. The `-v` flag is used to mount the Google Cloud credentials file into the container.
+    This command will build the Docker image for the API, pull the Memcached image, and start both containers. The API will be accessible at `http://localhost:5000`.
 
-[cite\_start]The `Dockerfile` also includes a `HEALTHCHECK` instruction to ensure the container is running correctly. [cite: 4]
+3.  **To stop the services**:
 
-## Contributing
-
-Contributions are welcome\! Please feel free to submit a pull request or open an issue for any bugs or feature requests.
+    ```bash
+    docker-compose down
+    ```

@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 
 class LoginSchema(Schema):
     """Schema for login request validation."""
@@ -15,3 +15,8 @@ class QuestionSchema(Schema):
     username = fields.String(required=True)
     session_name = fields.String(required=True)
     question = fields.String(required=True)
+    model = fields.String(
+        required=False,
+        missing="gemini",
+        validate=validate.OneOf(["gemini", "deepseek", "openai", "anthropic"])
+    )

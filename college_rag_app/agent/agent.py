@@ -1,12 +1,14 @@
 import os
 from google.adk.agents import Agent
 from google.adk.tools.retrieval.vertex_ai_rag_retrieval import VertexAiRagRetrieval
+from google.adk.models.lite_llm import LiteLlm
 from vertexai.preview import rag
 from dotenv import load_dotenv
 
-
 from .prompts import return_instructions_root
 
+
+load_dotenv()
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 if not GOOGLE_APPLICATION_CREDENTIALS:
@@ -22,18 +24,40 @@ ask_vertex_retrieval = VertexAiRagRetrieval(
             rag_corpus=os.environ.get("RAG_CORPUS")
         )
     ],
-    similarity_top_k=6,
+    similarity_top_k=7,
     vector_distance_threshold=0.6,
 )
 
-root_agent = Agent(
-    model=os.environ.get("GENAI_MODEL_NAME"),
-    name='ask_rag_agent',
-    instruction=return_instructions_root(),
-    tools=[
-        ask_vertex_retrieval,
-    ]
+def create_rag_agent(model_instance, name: str) -> Agent:
+    """Factory function to create a RAG agent with a given model."""
+    return Agent(
+        model=model_instance,
+        name=name,
+        instruction=return_instructions_root(),
+        tools=[ask_vertex_retrieval]
+    )
+
+
+gemini_agent = create_rag_agent(
+    model_instance=os.environ.get("GENAI_MODEL_NAME"),
+    name='ask_rag_agent_gemini'
 )
+
+deepseek_agent = create_rag_agent(
+    model_instance=LiteLlm(model=os.getenv("DEEPSEEK_MODEL_NAME", "deepseek/DeepSeek-V2")),
+    name='ask_rag_agent_deepseek'
+)
+
+openai_agent = create_rag_agent(
+    model_instance=LiteLlm(model=os.getenv("OPENAI_MODEL_NAME", "openai/gpt-4o")),
+    name='ask_rag_agent_openai'
+)
+
+anthropic_agent = create_rag_agent(
+    model_instance=LiteLlm(model=os.getenv("ANTHROPIC_MODEL_NAME", "anthropic/claude-3-sonnet-20240229")),
+    name='ask_rag_agent_anthropic'
+)
+
 
 if not os.getenv("RAG_CORPUS"):
     print("WARNING: RAG_CORPUS environment variable not set. RAG retrieval might not function.")
