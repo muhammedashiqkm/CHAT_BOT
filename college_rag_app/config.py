@@ -1,9 +1,13 @@
 import os
 import secrets
+import logging # UPDATED: Imported logging module
 from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# UPDATED: Get a logger instance
+logger = logging.getLogger(__name__)
 
 class Config:
     """
@@ -50,5 +54,5 @@ class Config:
     if not JWT_SECRET_KEY:
         raise ValueError("FATAL: JWT_SECRET_KEY environment variable is not set.")
     if not DEMO_USER or not DEMO_PASSWORD:
-        # This check can be adjusted based on whether demo user is strictly required in prod
-        print("WARNING: DEMO_USER or DEMO_PASSWORD not set. This is okay if using another auth method.")
+        # UPDATED: Switched from print() to logger.warning for consistent output
+        logger.warning("DEMO_USER or DEMO_PASSWORD not set. This is okay if using another auth method.")

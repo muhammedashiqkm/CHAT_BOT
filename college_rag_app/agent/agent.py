@@ -29,7 +29,7 @@ ask_vertex_retrieval = VertexAiRagRetrieval(
             rag_corpus=RAG_CORPUS
         )
     ],
-    similarity_top_k=7,
+    similarity_top_k=6,
     vector_distance_threshold=0.6,
 )
 

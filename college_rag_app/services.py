@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 try:
     session_service = DatabaseSessionService(db_url=Config.DATABASE_URL)
     
-    # Use a dictionary comprehension for cleaner initialization
     runners = {
         name: Runner(agent=agent, app_name=Config.APP_NAME, session_service=session_service)
         for name, agent in agents.items()
@@ -50,7 +49,10 @@ async def run_agent_async(user_id: str, session_id: str, user_input: str, model:
              
         return final_response
     except Exception as e:
-        logger.error(f"Error during agent execution for model {model}: {e}", exc_info=True) # Added exc_info
+        logger.error(
+            f"Error during agent execution for user '{user_id}' in session '{session_id}' with model '{model}': {e}",
+            exc_info=True
+        )
         raise AgentError(f"The selected AI model ({model}) is currently unavailable or failed to process the request.")
 
 def get_session_service():
