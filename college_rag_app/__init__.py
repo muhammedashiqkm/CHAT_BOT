@@ -23,9 +23,6 @@ def create_app():
     app.config.from_object(Config)
 
     # --- 2. Setup logging with rotation ---
-    # Create a rotating file handler.
-    # It will create a new log file when the current one reaches 10MB.
-    # It will keep the 5 most recent log files as backups.
     file_handler = RotatingFileHandler(
         'logs/app.log', 
         maxBytes=10 * 1024 * 1024,  # 10 MB

@@ -131,7 +131,7 @@ Submits a question to the AI agent within a specific session.
       "model": "gemini"
     }
     ```
-    *Note: The `model` field is optional and defaults to "gemini". Supported models: `gemini`, `openai`, `anthropic`, `deepseek`.*
+    *Note: The `model` field is optional and defaults to "gemini". Supported models: `gemini`, `openai`, `deepseek`.*
   * **Responses**:
       * **`200 OK` (Success)**:
         ```json

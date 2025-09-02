@@ -53,10 +53,6 @@ openai_agent = create_rag_agent(
     name='ask_rag_agent_openai'
 )
 
-anthropic_agent = create_rag_agent(
-    model_instance=LiteLlm(model=os.getenv("ANTHROPIC_MODEL_NAME", "anthropic/claude-3-sonnet-20240229")),
-    name='ask_rag_agent_anthropic'
-)
 
 
 if not os.getenv("RAG_CORPUS"):

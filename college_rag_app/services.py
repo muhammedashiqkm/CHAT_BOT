@@ -5,7 +5,7 @@ from google.adk.runners import Runner
 from google.genai.types import Content, Part
 
 # --- Import all defined agents ---
-from .agent.agent import gemini_agent, deepseek_agent, openai_agent, anthropic_agent
+from .agent.agent import gemini_agent, deepseek_agent, openai_agent
 from .config import Config
 from .exceptions import AgentError
 
@@ -18,8 +18,7 @@ try:
     runners = {
         "gemini": Runner(agent=gemini_agent, app_name=Config.APP_NAME, session_service=session_service),
         "deepseek": Runner(agent=deepseek_agent, app_name=Config.APP_NAME, session_service=session_service),
-        "openai": Runner(agent=openai_agent, app_name=Config.APP_NAME, session_service=session_service),
-        "anthropic": Runner(agent=anthropic_agent, app_name=Config.APP_NAME, session_service=session_service)
+        "openai": Runner(agent=openai_agent, app_name=Config.APP_NAME, session_service=session_service)
     }
 except Exception as e:
     logger.critical(f"Failed to initialize agent services: {e}")

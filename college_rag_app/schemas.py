@@ -18,5 +18,5 @@ class QuestionSchema(Schema):
     model = fields.String(
         required=False,
         missing="gemini",
-        validate=validate.OneOf(["gemini", "deepseek", "openai", "anthropic"])
+        validate=validate.OneOf(["gemini", "deepseek", "openai"])
     )
