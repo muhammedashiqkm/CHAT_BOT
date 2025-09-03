@@ -16,7 +16,6 @@ class QuestionSchema(Schema):
     session_name = fields.String(required=True)
     question = fields.String(required=True)
     model = fields.String(
-        required=False,
-        missing="gemini",
+        required=True,
         validate=validate.OneOf(["gemini", "deepseek", "openai"])
     )

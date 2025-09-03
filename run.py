@@ -6,7 +6,7 @@ app = create_app()
 
 if __name__ == "__main__":
     # Get debug mode from environment variables
-    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    debug_mode = os.getenv("FLASK_DEBUG", "False")
     
     # Run the Flask app
     # For development only. Use Gunicorn in production.

@@ -1,6 +1,6 @@
 import os
 import secrets
-import logging # UPDATED: Imported logging module
+import logging
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -19,8 +19,6 @@ class Config:
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
     # Secret Keys
-    # In production, ensure SECRET_KEY and JWT_SECRET_KEY are set securely as environment variables.
-    # Do not rely on default or dynamically generated values at each app start.
     SECRET_KEY = os.getenv('SECRET_KEY')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 
@@ -28,11 +26,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "1")))
 
     # CORS Settings
-    # IMPORTANT: In production, specify exact trusted origins instead of "*".
-    # Example: ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://yourfrontend.com").split(",")
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
     
-     # In production, set this to your Memcached server's address.
+    # In production, set this to your Memcached server's address.
     RATELIMIT_STORAGE_URI = os.getenv("MEMCACHED_URL","memcached://memcached:11211")
 
     # Database
@@ -44,7 +40,6 @@ class Config:
     APP_NAME = "college_rag_app"
 
     # User credentials for demo
-    # In production, consider removing demo credentials or using a proper user management system.
     DEMO_USER = os.getenv('DEMO_USER')
     DEMO_PASSWORD = os.getenv('DEMO_PASSWORD')
 
@@ -54,5 +49,4 @@ class Config:
     if not JWT_SECRET_KEY:
         raise ValueError("FATAL: JWT_SECRET_KEY environment variable is not set.")
     if not DEMO_USER or not DEMO_PASSWORD:
-        # UPDATED: Switched from print() to logger.warning for consistent output
         logger.warning("DEMO_USER or DEMO_PASSWORD not set. This is okay if using another auth method.")

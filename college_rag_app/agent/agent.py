@@ -11,7 +11,7 @@ load_dotenv()
 
 # --- Environment Variable Checks ---
 RAG_CORPUS = os.getenv("RAG_CORPUS")
-GENAI_MODEL_NAME = os.getenv("GENAI_MODEL_NAME")
+GENAI_MODEL_NAME = os.getenv("GOOGLE_MODEL_NAME")
 
 if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
     print("WARNING: GOOGLE_APPLICATION_CREDENTIALS environment variable not set.")

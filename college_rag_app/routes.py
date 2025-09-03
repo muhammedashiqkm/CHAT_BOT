@@ -82,11 +82,12 @@ async def start_session():
 @jwt_required()
 async def ask():
     current_user = get_jwt_identity()
+    model_choice = ""
     try:
         data = QuestionSchema().load(request.json)
         username = data["username"]
         session_name = data["session_name"]
-        model_choice = data.get("model") or "gemini"
+        model_choice = data["model"] 
         
         if username != current_user:
             security_logger.warning(
@@ -95,16 +96,18 @@ async def ask():
             return jsonify({"error": "Forbidden"}), 403
         
         try:
-            await session_service.get_session(
+            session = await session_service.get_session(
                 app_name=Config.APP_NAME,
                 user_id=username,
                 session_id=session_name
             )
-        except Exception as e:
-            if "Session not found" in str(e):
+            if not session:
                 app_logger.warning(f"Attempt to use non-existent session: user '{username}', session '{session_name}'.")
                 return jsonify({"error": f"Session '{session_name}' not found."}), 404
-            raise e
+        except Exception as e:
+            error_logger.error(f"Error during get_session for user '{username}': {e}", exc_info=True)
+            return jsonify({"error": "An error occurred while retrieving the session."}), 500
+        
 
         app_logger.info(f"User '{username}' asking question in session '{session_name}' using model '{model_choice}'.")
         
