@@ -28,11 +28,7 @@ async def run_agent_async(user_id: str, session_id: str, user_input: str, model:
     Asynchronously runs the agent and returns the final response.
     Selects the agent runner based on the 'model' parameter.
     """
-    # Use .get() with a default value for cleaner fallback logic
     runner = runners.get(model)
-    if not runner:
-        logger.warning(f"Invalid model '{model}' requested. Falling back to Gemini.")
-        runner = runners["gemini"] # Direct access since 'gemini' should always exist
 
     content = Content(role="user", parts=[Part(text=user_input)])
     final_response = ""
