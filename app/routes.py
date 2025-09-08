@@ -6,6 +6,7 @@ from flask_jwt_extended import (
 )
 import logging
 import uuid
+import threading  # <-- ADDED IMPORT
 from functools import wraps 
 
 from . import limiter
@@ -160,12 +161,38 @@ async def end_session():
 
 
 
+def run_ingestion_in_background(app, doc_id):
+    """
+    Runs the blocking ingestion process in a new thread with its own app context
+    to avoid blocking the main ASGI server.
+    """
+    with app.app_context():
+        try:
+            doc = Document.query.get(doc_id)
+            if not doc:
+                error_logger.error(f"[BG_JOB] Failed to find Document {doc_id} to start ingestion.")
+                return
+
+            process_and_store_document(doc) 
+
+        except Exception as e:
+            error_logger.error(f"[BG_JOB] Ingestion failed for {doc_id}: {e}", exc_info=True)
+            try:
+                db.session.rollback() 
+                doc_to_fail = Document.query.get(doc_id)
+                if doc_to_fail:
+                    doc_to_fail.processing_status = "FAILED"
+                    doc_to_fail.processing_error = f"Background task error: {str(e)}"
+                    db.session.commit()
+            except Exception as db_e:
+                error_logger.error(f"[BG_JOB] FATAL: Failed to even update error status for {doc_id}: {db_e}")
+
 
 @api_bp.route("/document", methods=["POST"])
 @admin_required
 def create_document():
     """
-    Creates a new Document record and triggers ingestion.
+    Creates a new Document record and triggers ingestion IN THE BACKGROUND.
     Expects JSON: { "source_url": "...", "display_name": "My Doc Name" }
     """
     data = request.json
@@ -179,10 +206,16 @@ def create_document():
             processing_status="PENDING"
         )
         db.session.add(new_doc)
-        db.session.commit()
+        db.session.commit() 
         
-        process_and_store_document(new_doc)
+        app = current_app._get_current_object() 
         
+        thread = threading.Thread(
+            target=run_ingestion_in_background, 
+            args=(app, new_doc.id)
+        )
+        thread.start()
+     
         return jsonify({
             "message": "Document ingestion started.", 
             "status": new_doc.processing_status,
@@ -266,7 +299,7 @@ def delete_document(doc_id):
 def re_ingest_document(doc_id):
     """
     Re-processes a document. This deletes all old chunks and re-runs
-    the full ingestion pipeline.
+    the full ingestion pipeline IN THE BACKGROUND.
     """
     try:
         doc_uuid = uuid.UUID(doc_id)
@@ -276,18 +309,25 @@ def re_ingest_document(doc_id):
     doc = Document.query.get_or_404(doc_uuid)
     
     try:
-        # 1. Delete all existing chunks
+        # 1. Delete all existing chunks (This is fast)
         DocumentChunk.query.filter_by(document_id=doc.id).delete()
         
-        # 2. Reset status and trigger ingestion again
+        # 2. Reset status
         doc.processing_status = "PENDING_REINGEST"
         doc.processing_error = None
         db.session.commit()
         
-        # 3. Run the same ingestion logic
-        process_and_store_document(doc)
+        # 3. Get app context and run ingestion in background thread
+        app = current_app._get_current_object() 
+        thread = threading.Thread(
+            target=run_ingestion_in_background, 
+            args=(app, doc.id)
+        )
+        thread.start()
         
         app_logger.info(f"Admin '{get_jwt_identity()}' triggered re-ingestion for {doc_id}")
+        
+        # Return IMMEDIATELY
         return jsonify({
             "message": "Document re-ingestion started.",
             "status": doc.processing_status,
