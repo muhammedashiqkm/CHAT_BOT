@@ -16,7 +16,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./google-credentials.json:/app/google-credentials.json:ro
       - app-logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]

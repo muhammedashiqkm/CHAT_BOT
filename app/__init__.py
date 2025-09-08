@@ -7,10 +7,11 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import google.generativeai as genai
 
 from .config import Config
+from .models import db
 
-# --- Helper Function for Logging ---
 def setup_logger(name, log_file, level=logging.INFO):
     """Function to set up a logger."""
     log_directory = 'logs'
@@ -34,13 +35,12 @@ def setup_logger(name, log_file, level=logging.INFO):
     logger.propagate = False
     return logger
 
-# --- Initialize Loggers ---
 app_logger = setup_logger('app', 'app.log')
 error_logger = setup_logger('error', 'error.log', logging.ERROR)
 access_logger = setup_logger('access', 'access.log')
 security_logger = setup_logger('security', 'security.log')
 
-# Initialize extensions
+
 cors = CORS()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address)
@@ -51,17 +51,36 @@ def create_app():
     """
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    try:
+        genai.configure(api_key=Config.GOOGLE_API_KEY)
+        app_logger.info("Google AI SDK configured successfully.")
+    except Exception as e:
+        app_logger.critical(f"FATAL: Failed to configure Google AI SDK: {e}", exc_info=True)
+        error_logger.critical(f"FATAL: Failed to configure Google AI SDK: {e}", exc_info=True)
 
-    # Initialize extensions with the app
+
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+
     cors.init_app(app, origins=app.config['ALLOWED_ORIGINS'], supports_credentials=True)
     jwt.init_app(app)
     limiter.init_app(app)
 
-    # Register blueprints
     from .routes import api_bp
     app.register_blueprint(api_bp)
 
-    # Register error handlers
+    with app.app_context():
+        try:
+            db.create_all()
+            app_logger.info("Database tables created or already exist.")
+        except Exception as e:
+            app_logger.critical(f"FATAL: Database table creation failed: {e}", exc_info=True)
+            error_logger.critical(f"Database creation error. Did you remember to run 'CREATE EXTENSION IF NOT EXISTS vector;' in PostgreSQL?", exc_info=True)
+
+
     @app.errorhandler(404)
     def handle_not_found(e):
         return jsonify({"error": "Resource not found"}), 404

@@ -1,15 +1,30 @@
+
+
+# Core Flask & API
 Flask[async]
 Flask-Cors
 Flask-JWT-Extended
 Flask-Limiter
-hypercorn
-google-adk
-google-cloud-aiplatform
-google-generativeai
 marshmallow
 python-dotenv
+
+# Google ADK & AI
+google-adk
+google-generativeai
 litellm
-pylibmc
-llama-index
+
+# Caching & Rate Limiting (Using pymemcache as it's pure Python)
 pymemcache
+
+# Database (PostgreSQL + Vectors)
 psycopg2-binary
+Flask-SQLAlchemy
+SQLAlchemy
+pgvector
+
+# RAG Ingestion Pipeline
+requests
+pypdf
+langchain-text-splitters
+
+hypercorn

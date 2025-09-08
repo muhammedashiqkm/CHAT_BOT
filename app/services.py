@@ -4,7 +4,7 @@ from google.adk.sessions import DatabaseSessionService
 from google.adk.runners import Runner
 from google.genai.types import Content, Part
 
-from .agent.agent import agents
+from .agent import agents
 from .config import Config
 from .exceptions import AgentError
 

@@ -1,21 +1,36 @@
-Of course. Here is the updated README, focusing only on the Docker setup instructions and the API request/response formats.
+
+# College RAG App API
+
+This document details the API endpoints for the RAG (Retrieval-Augmented Generation) chatbot application.
+
+**Note**: All endpoints, except `/login` and `/health`, are protected. They require an `Authorization: Bearer <your_access_token>` header obtained from the login route. Admin routes require a token generated for an admin user.
 
 -----
 
-# Semantic Question Similarity API
+## Health & Authentication
 
+### `GET /health`
 
-## API Endpoint Details
+Checks the health of the API server.
 
-**Note**: Protected endpoints require an `Authorization: Bearer <your_access_token>` header.
+  * **Auth**: None.
+  * **Success Response (200 OK)**:
+    ```json
+    {
+      "status": "ok"
+    }
+    ```
 
 ### `POST /login`
 
+Authenticates a user and returns a JSON Web Token (JWT). The credentials for the demo admin user are set via `DEMO_USER` and `DEMO_PASSWORD` environment variables.
+
+  * **Auth**: None.
   * **Request Body**:
     ```json
     {
-      "username": "webapp_admin",
-      "password": "your_strong_password"
+      "username": "your_demo_user",
+      "password": "your_demo_password"
     }
     ```
   * **Success Response (200 OK)**:
@@ -27,91 +42,159 @@ Of course. Here is the updated README, focusing only on the Docker setup instruc
 
 -----
 
-Of course. Here are the updated request and response formats.
+## User Session & Chat
 
-The main change is adding optional fields (`embedding_provider`, `reasoning_provider`) to the request bodies. This allows you to specify which AI provider to use for the analysis, making the API more flexible.
+### `POST /start_session`
 
------
+Initializes a new chat session history for a user.
 
-### `POST /check_similarity`
+  * **Auth**: JWT Required.
+  * **Request Body**:
+    ```json
+    {
+      "username": "your_demo_user",
+      "session_name": "my-first-session"
+    }
+    ```
+  * **Success Response (201 Created)**:
+    ```json
+    {
+      "message": "Session created"
+    }
+    ```
 
-Checks if a new question is semantically similar to any question from a list hosted at a given URL.
+### `POST /ask`
+
+Submits a question to the RAG agent within a specific session. Requires a valid model choice.
+
+  * **Auth**: JWT Required.
 
   * **Request Body**:
 
     ```json
     {
-      "questions_url": "https://example.com/api/questions.json",
-      "question": "How do I set up a Docker container?",
-      "embedding_provider": "openai",
-      "reasoning_provider": "gemini"
+      "username": "your_demo_user",
+      "session_name": "my-first-session",
+      "question": "What are the admission requirements?",
+      "model": "gemini"
     }
     ```
 
-      * **`embedding_provider`** (optional): Specifies the AI service for generating embeddings. Supported values: `gemini`, `openai`. Defaults to the server's pre-configured provider if omitted.
-      * **`reasoning_provider`** (optional): Specifies the AI service for initial question validation. Supported values: `gemini`, `openai`, `deepseek`. Defaults to the server's pre-configured provider if omitted.
+      * **`model`** (required): Must be one of the configured agent models. Your code supports `"gemini"`, `"openai"`, and `"deepseek"`.
 
-  * **Success Response (Match Found)**:
+  * **Success Response (200 OK)**:
 
     ```json
     {
-      "response": "yes",
-      "matched_questions": [
-        {
-          "Question": "What are the steps to configure a Docker container?",
-          "Answer": "First, you need to create a Dockerfile..."
-        }
-      ]
+      "response": "<p>Here are the admission requirements...</p><ul><li>Requirement 1</li></ul>"
     }
     ```
 
-  * **Success Response (No Match Found)**:
+### `POST /end_session`
 
+Deletes a user's chat session history from the database.
+
+  * **Auth**: JWT Required.
+  * **Request Body**:
     ```json
     {
-      "response": "no"
+      "username": "your_demo_user",
+      "session_name": "my-first-session"
+    }
+    ```
+  * **Success Response (200 OK)**:
+    ```json
+    {
+      "message": "Session deleted"
     }
     ```
 
 -----
 
-### `POST /group_similar_questions`
+## Admin: Document Management
 
-Fetches all questions from a URL and groups them into clusters of semantically similar questions.
+These endpoints are used to manage the RAG knowledge base. They require an **Admin** JWT.
 
+### `GET /document_details`
+
+Lists all ingested documents and their current processing status.
+
+  * **Auth**: JWT Required (any authenticated user).
+  * **Success Response (200 OK)**:
+    ```json
+    [
+      {
+        "id": "a1b2c3d4-...",
+        "display_name": "Undergraduate Catalog 2025",
+        "source_url": "https://.../catalog.pdf",
+        "status": "COMPLETED",
+        "error": null,
+        "created_at": "2025-09-01T10:30:00+00:00"
+      }
+    ]
+    ```
+
+### `POST /document`
+
+Submits a new document (from a public URL) for ingestion. This triggers the background process of fetching, chunking, embedding, and saving the document.
+
+  * **Auth**: Admin JWT Required.
   * **Request Body**:
-
     ```json
     {
-      "questions_url": "https://example.com/api/questions.json",
-      "embedding_provider": "gemini"
+      "source_url": "https://example.com/path/to/document.pdf",
+      "display_name": "Example Document Name"
+    }
+    ```
+  * **Success Response (201 Created)**:
+    ```json
+    {
+      "message": "Document ingestion started.",
+      "status": "PENDING",
+      "document_id": "e5f6a7b8-..."
     }
     ```
 
-      * **`embedding_provider`** (optional): Specifies the AI service for generating embeddings. Supported values: `gemini`, `openai`. Defaults to the server's pre-configured provider if omitted.
+### `GET /document/<doc_id>`
 
-  * **Success Response (Groups Found)**:
+Retrieves the status and details for a single document, including its chunk count.
 
+  * **Auth**: JWT Required (any authenticated user).
+  * **Success Response (200 OK)**:
     ```json
     {
-      "response": "yes",
-      "matched_groups": [
-        [
-          { "Question": "Question A1", "Answer": "..." },
-          { "Question": "Question A2", "Answer": "..." }
-        ],
-        [
-          { "Question": "Question B1", "Answer": "..." },
-          { "Question": "Question B2", "Answer": "..." }
-        ]
-      ]
+        "id": "a1b2c3d4-...",
+        "display_name": "Undergraduate Catalog 2025",
+        "source_url": "https://.../catalog.pdf",
+        "status": "COMPLETED",
+        "error": null,
+        "created_at": "2025-09-01T10:30:00+00:00",
+        "chunk_count": 150
     }
     ```
 
-  * **Success Response (No Groups Found)**:
+### `DELETE /document/<doc_id>`
 
+Deletes a document and all its associated vector chunks from the database.
+
+  * **Auth**: Admin JWT Required.
+  * **Success Response (200 OK)**:
     ```json
     {
-      "response": "no"
+      "message": "Document 'Undergraduate Catalog 2025' deleted."
+    }
+    ```
+
+### `POST /document/<doc_id>/re_ingest`
+
+Deletes all old chunks for a document and triggers a fresh ingestion process using the document's existing `source_url`.
+
+  * **Auth**: Admin JWT Required.
+  * **Success Response (200 OK)**:
+    ```json
+    {
+      "message": "Document re-ingestion started.",
+      "status": "PENDING_REINGEST",
+      "document_id": "a1b2c3d4-..."
     }
     ```
