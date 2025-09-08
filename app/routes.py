@@ -1,4 +1,3 @@
-# file: app/routes.py
 from flask import Blueprint, request, jsonify, current_app
 from marshmallow import ValidationError
 from flask_jwt_extended import (
@@ -6,7 +5,7 @@ from flask_jwt_extended import (
 )
 import logging
 import uuid
-import threading  # <-- ADDED IMPORT
+import threading
 from functools import wraps 
 
 from . import limiter
@@ -309,15 +308,12 @@ def re_ingest_document(doc_id):
     doc = Document.query.get_or_404(doc_uuid)
     
     try:
-        # 1. Delete all existing chunks (This is fast)
         DocumentChunk.query.filter_by(document_id=doc.id).delete()
         
-        # 2. Reset status
         doc.processing_status = "PENDING_REINGEST"
         doc.processing_error = None
         db.session.commit()
         
-        # 3. Get app context and run ingestion in background thread
         app = current_app._get_current_object() 
         thread = threading.Thread(
             target=run_ingestion_in_background, 
@@ -327,7 +323,7 @@ def re_ingest_document(doc_id):
         
         app_logger.info(f"Admin '{get_jwt_identity()}' triggered re-ingestion for {doc_id}")
         
-        # Return IMMEDIATELY
+
         return jsonify({
             "message": "Document re-ingestion started.",
             "status": doc.processing_status,
