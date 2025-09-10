@@ -24,8 +24,9 @@ pgvector
 
 # RAG Ingestion Pipeline
 requests
-pypdf
+PyMuPDF
 langchain-text-splitters
 
 hypercorn
 
+gdown

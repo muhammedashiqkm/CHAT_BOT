@@ -1,3 +1,4 @@
+# file: app/routes.py
 from flask import Blueprint, request, jsonify, current_app
 from marshmallow import ValidationError
 from flask_jwt_extended import (
@@ -5,8 +6,7 @@ from flask_jwt_extended import (
 )
 import logging
 import uuid
-import threading
-import os  # <-- NEW IMPORT
+import threading  # <-- ADDED IMPORT
 from functools import wraps 
 
 from . import limiter
@@ -25,11 +25,6 @@ error_logger = logging.getLogger('error')
 
 api_bp = Blueprint('api', __name__)
 session_service = get_session_service()
-
-# Define the local upload folder path
-UPLOAD_FOLDER = '/app/uploads'
-# Ensure the upload folder exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def admin_required(fn):
@@ -165,11 +160,11 @@ async def end_session():
         return jsonify({"error": "An error occurred"}), 500
 
 
+
 def run_ingestion_in_background(app, doc_id):
     """
     Runs the blocking ingestion process in a new thread with its own app context
     to avoid blocking the main ASGI server.
-    (This function remains unchanged, its logic is still perfect)
     """
     with app.app_context():
         try:
@@ -198,59 +193,23 @@ def run_ingestion_in_background(app, doc_id):
 def create_document():
     """
     Creates a new Document record and triggers ingestion IN THE BACKGROUND.
-    This endpoint accepts multipart/form-data with either:
-    1. A file upload: { "display_name": "...", "file": <PDF_FILE> }
-    2. A URL (G-Drive or Direct): { "display_name": "...", "source_url": "..." }
+    Expects JSON: { "source_url": "...", "display_name": "My Doc Name" }
     """
+    data = request.json
+    if not all(k in data for k in ("source_url", "display_name")):
+        return jsonify({"error": "Missing required fields: source_url and display_name"}), 400
+
     try:
-        display_name = request.form.get("display_name")
-        if not display_name:
-            return jsonify({"error": "Missing required field: display_name"}), 400
-
-        source_url_from_form = request.form.get("source_url")
-        uploaded_file = request.files.get("file")
-
-        if not uploaded_file and not source_url_from_form:
-            return jsonify({"error": "Must provide either a 'file' upload or a 'source_url' field"}), 400
-        
         new_doc = Document(
-            display_name=display_name,
-            processing_status="PENDING" 
+            source_url=data["source_url"],
+            display_name=data["display_name"],
+            processing_status="PENDING"
         )
+        db.session.add(new_doc)
+        db.session.commit() 
         
-        if uploaded_file:
-            if uploaded_file.filename == '':
-                return jsonify({"error": "File field provided but no file was selected"}), 400
-            
-            # Save doc to get the ID
-            db.session.add(new_doc)
-            db.session.commit()
-            
-            # Save file locally using its new UUID, guaranteeing a unique filename
-            # Note: We just use the file extension from the original upload for clarity
-            _, file_ext = os.path.splitext(uploaded_file.filename)
-            if not file_ext:
-                file_ext = ".pdf" # Default to .pdf if extension is missing
-                
-            local_filename = f"{str(new_doc.id)}{file_ext}"
-            local_filepath = os.path.join(UPLOAD_FOLDER, local_filename)
-            uploaded_file.save(local_filepath)
-            
-            # Save the *internal file path* as the source_url for the background job
-            new_doc.source_url = local_filepath
-            app_logger.info(f"File uploaded and saved locally to {local_filepath}")
-
-        else:
-            # No file uploaded, use the provided source_url (G-Drive or direct link)
-            new_doc.source_url = source_url_from_form
-            db.session.add(new_doc)
-            db.session.commit()
-
-        # Commit the final changes (like the source_url if it was a file upload)
-        db.session.commit()
-        
-        # The background thread logic remains the same. It just needs the doc_id.
         app = current_app._get_current_object() 
+        
         thread = threading.Thread(
             target=run_ingestion_in_background, 
             args=(app, new_doc.id)
@@ -260,15 +219,14 @@ def create_document():
         return jsonify({
             "message": "Document ingestion started.", 
             "status": new_doc.processing_status,
-            "document_id": new_doc.id,
-            "source": new_doc.source_url
+            "document_id": new_doc.id
         }), 201
 
     except Exception as e:
         db.session.rollback()
         error_logger.error(f"Failed to create document: {e}", exc_info=True)
         if "UniqueViolation" in str(e):
-             return jsonify({"error": f"A document with the name '{display_name}' already exists."}), 409
+             return jsonify({"error": f"A document with the name '{data['display_name']}' already exists."}), 409
         return jsonify({"error": f"An internal error occurred: {e}"}), 500
 
 
@@ -342,7 +300,6 @@ def re_ingest_document(doc_id):
     """
     Re-processes a document. This deletes all old chunks and re-runs
     the full ingestion pipeline IN THE BACKGROUND.
-    (This function remains unchanged, its logic is still perfect)
     """
     try:
         doc_uuid = uuid.UUID(doc_id)
@@ -352,12 +309,15 @@ def re_ingest_document(doc_id):
     doc = Document.query.get_or_404(doc_uuid)
     
     try:
+        # 1. Delete all existing chunks (This is fast)
         DocumentChunk.query.filter_by(document_id=doc.id).delete()
         
+        # 2. Reset status
         doc.processing_status = "PENDING_REINGEST"
         doc.processing_error = None
         db.session.commit()
         
+        # 3. Get app context and run ingestion in background thread
         app = current_app._get_current_object() 
         thread = threading.Thread(
             target=run_ingestion_in_background, 
@@ -367,7 +327,7 @@ def re_ingest_document(doc_id):
         
         app_logger.info(f"Admin '{get_jwt_identity()}' triggered re-ingestion for {doc_id}")
         
-
+        # Return IMMEDIATELY
         return jsonify({
             "message": "Document re-ingestion started.",
             "status": doc.processing_status,
