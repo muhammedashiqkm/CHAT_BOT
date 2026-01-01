@@ -1,32 +1,32 @@
-
-
 # Core Flask & API
-Flask[async]
-Flask-Cors
-Flask-JWT-Extended
-Flask-Limiter
-marshmallow
-python-dotenv
+Flask[async]==3.1.2
+Flask-Cors==6.0.1
+Flask-JWT-Extended==4.7.1
+Flask-Limiter==4.0.0
+marshmallow==4.0.1
+python-dotenv==1.1.1
 
 # Google ADK & AI
-google-adk
-google-generativeai
-litellm
+google-adk==1.12.0
+google-generativeai==0.8.5
+litellm==1.78.3
 
-# Caching & Rate Limiting (Using pymemcache as it's pure Python)
-pymemcache
+# Caching
+pymemcache==4.0.0
 
-# Database (PostgreSQL + Vectors)
-psycopg2-binary
-Flask-SQLAlchemy
-SQLAlchemy
-pgvector
+# Database
+psycopg2-binary==2.9.11
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.44
+pgvector==0.4.1
 
-# RAG Ingestion Pipeline
-requests
-PyMuPDF
-langchain-text-splitters
+# Ingestion
+requests==2.32.5
+PyMuPDF==1.26.5
+langchain-text-splitters==1.0.0
 
-hypercorn
+# Server
+Hypercorn==0.17.3
 
-gdown
+# Utilities
+gdown==5.2.0
