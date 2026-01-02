@@ -26,8 +26,6 @@ class Config:
     # JWT Settings
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "1")))
 
-    # CORS Settings
-    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
     
     # Rate Limiting
     RATELIMIT_STORAGE_URI = os.getenv("MEMCACHED_URL","memcached://memcached:11211")
@@ -47,7 +45,7 @@ class Config:
     # These variables are required by agent.py and ingestion_service.py
     TEXT_CHUNK_SIZE = int(os.getenv("TEXT_CHUNK_SIZE", 1000))
     TEXT_CHUNK_OVERLAP = int(os.getenv("TEXT_CHUNK_OVERLAP", 200))
-    EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "models/text-embedding-004")
+    EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "models/gemini-embedding-001")
     
     # These MUST match your models.py definitions
     PG_TABLE_NAME = os.getenv("PG_TABLE_NAME", "document_chunks") 

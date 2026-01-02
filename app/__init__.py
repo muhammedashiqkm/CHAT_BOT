@@ -65,7 +65,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
 
-    cors.init_app(app, origins=app.config['ALLOWED_ORIGINS'], supports_credentials=True)
+    cors.init_app(app, origins="*", supports_credentials=True)
     jwt.init_app(app)
     limiter.init_app(app)
 

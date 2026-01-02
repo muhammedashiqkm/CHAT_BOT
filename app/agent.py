@@ -24,20 +24,18 @@ if not Config.GOOGLE_API_KEY:
 
 
 def _get_sync_embedding(query: str) -> list[float] | None:
-    """
-    Synchronous helper to run the blocking genai embedding call in a thread.
-    """
     logger.info("Executing synchronous embedding generation in thread pool...")
     try:
         embed_result = genai.embed_content(
             model=Config.EMBEDDING_MODEL_NAME,
             content=query,
-            task_type="retrieval_query"
+            task_type="retrieval_query",
+            output_dimensionality=Config.PG_EMBEDDING_DIMENSION 
         )
         return embed_result['embedding']
     except Exception as e:
         logger.error(f"Error during synchronous embedding generation: {e}", exc_info=True)
-        return None 
+        return None
 
 
 

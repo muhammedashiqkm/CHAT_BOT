@@ -53,13 +53,13 @@ def get_text_chunks(text: str, chunk_size: int, chunk_overlap: int) -> list[str]
 
 
 def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
-    """Generates vector embeddings for a batch of texts using Google AI."""
     try:
         model_name = current_app.config.get("EMBEDDING_MODEL_NAME")
         result = genai.embed_content(
             model=model_name,
             content=texts,
-            task_type="retrieval_document" 
+            task_type="retrieval_document",
+            output_dimensionality=current_app.config.get("PG_EMBEDDING_DIMENSION")
         )
         return result['embedding']
     except Exception as e:
